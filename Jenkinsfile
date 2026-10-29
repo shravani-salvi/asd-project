@@ -1,19 +1,32 @@
+
 pipeline {
     agent any
-    triggers { pollSCM('H/5 * * * *') }
+
     stages {
-        stage('Build') { 
-         steps { bat 'echo Build completed.' } 
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
-        stage('Test')  { 
-         steps { bat 'echo Tests completed.' } 
+
+        stage('Build') {
+            steps {
+                bat 'docker build -t devops-store-image .'
+            }
         }
+
+        stage('Test') {
+            steps {
+                bat 'docker image inspect devops-store-image'
+                bat 'if not exist index.html exit /b 1'
+            }
+        }
+
         stage('Deploy') {
-          steps { bat 'echo' }
+            steps {
+                bat 'docker rm -f devops-store 2>NUL || exit /b 0'
+                bat 'docker run -d --name devops-store -p 8090:80 devops-store-image'
+            }
         }
-    }
-    post {
-        success { echo 'Pipeline completed successfully!' }
-        failure { echo 'Pipeline failed; check Console Output.' }
     }
 }
